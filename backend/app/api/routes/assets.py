@@ -1,6 +1,6 @@
 # app/api/routes/assets.py
 from fastapi import APIRouter, Request, HTTPException
-from app.db.assets_crud import create_asset
+from app.db.assets_crud import create_asset,get_assets
 
 router = APIRouter()
 
@@ -31,3 +31,6 @@ async def create_asset_endpoint(request: Request):
         return asset
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+@router.get("/assets")
+def list_assets():
+    return get_assets()

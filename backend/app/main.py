@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
-from app.api.routes import train, websocket, assets
+from app.api.routes import train, websocket, assets,model
 from app.db.db import db
 
 app = FastAPI(
@@ -39,3 +39,4 @@ app.include_router(train.router, tags=["Model Training"])
 
 app.include_router(websocket.router, tags=["WS"])
 app.include_router(assets.router, tags=["Assets"])
+app.include_router(model.router, tags=["Models"])

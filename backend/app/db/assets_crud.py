@@ -20,3 +20,13 @@ def create_asset(data: dict) -> dict:
         raise RuntimeError("Failed to create asset")
 
     return result.data[0]
+def get_assets() -> list[dict]:
+    result = (
+        db
+        .table("assets")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return result.data or []
