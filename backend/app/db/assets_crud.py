@@ -8,6 +8,7 @@ def create_asset(data: dict) -> dict:
     """
     result = db.table("assets").insert({
         "asset_type": data["asset_type"],
+         "asset_name": data["asset_name"],
         "city": data["city"],
         "address": data["address"],
         "manager_name": data["manager_name"],

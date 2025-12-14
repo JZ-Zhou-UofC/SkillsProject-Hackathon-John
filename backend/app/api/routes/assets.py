@@ -6,6 +6,7 @@ router = APIRouter()
 
 REQUIRED_FIELDS = [
     "asset_type",
+    "asset_name",
     "city",
     "address",
     "manager_name",
