@@ -1,6 +1,6 @@
 # app/db/assets_crud.py
 from app.db.db import db
-
+import pandas as pd
 
 def create_asset(data: dict) -> dict:
     """
@@ -35,40 +35,42 @@ def get_assets() -> list[dict]:
     return result.data or []
 
 
-def insert_asset_detail(asset_id: int, df):
-    rows = [
-        {
+def insert_asset_detail(asset_id: int, df: pd.DataFrame):
+    rows = []
+
+    for _, row in df.iterrows():
+        rows.append({
             "asset_id": asset_id,
-            "timestamp": row.timestamp,
-            "output_current": row.output_current,
-            "pump_voltage": row.pump_voltage,
-            "bearing_vibration": row.bearing_vibration,
-            "exhaust_chemical_percentage": row.exhaust_chemical_percentage,
-            "compressor_temperature": row.compressor_temperature,
-            "intake_air_temperature": row.intake_air_temperature,
-        }
-        for row in df.itertuples()
-    ]
+            "timestamp": row["timestamp"].isoformat(),
+            "output_current": float(row["output_current"]),
+            "pump_voltage": float(row["pump_voltage"]),
+            "bearing_vibration": float(row["bearing_vibration"]),
+            "exhaust_chemical_percentage": float(row["exhaust_chemical_percentage"]),
+            "compressor_temperature": float(row["compressor_temperature"]),
+            "intake_air_temperature": float(row["intake_air_temperature"]),
+        })
 
-    db.table("asset_detail").insert(rows).execute()
-
-
-def get_asset(asset_id: int) -> dict | None:
-    """
-    Fetch a single asset by ID.
-    Returns None if asset does not exist.
-    """
-    result = db.table("assets").select("*").eq("id", asset_id).single().execute()
+    if rows:
+        db.table("asset_detail").insert(rows).execute()
 
 
-def update_asset_risk(asset_id: int, risk: str) -> None:
+def get_asset(asset_id: int):
+    result = db.table("assets").select("*").eq("id", asset_id).execute()
+
+    if not result.data:
+        return None
+
+    return result.data[0]
+
+
+def update_asset_risk(asset_id: int,shutdown_risk: float) -> None:
     """
     Update the asset's overall risk status.
     Example risk values: HIGH, MEDIUM, LOW, N/A
     """
     (
         db.table("assets")
-        .update({"risk_status": risk, "updated_at": "now()"})
+        .update({"risk_status": shutdown_risk})
         .eq("id", asset_id)
         .execute()
     )

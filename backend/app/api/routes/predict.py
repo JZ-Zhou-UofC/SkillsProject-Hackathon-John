@@ -1,9 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import tempfile
-
+from dataclasses import asdict
 from app.services.csv_validator import validate_input_csv
 from app.services.data_processing import clean_data_for_prediction
-from app.services.predict_model import predict_risk
+from app.services.predict_risk import predict_risk
 from app.storage.data_store import save_cleaned_prediction_csv
 from app.db.assets_crud import get_asset, update_asset_risk, insert_asset_detail
 from app.db.prediction_crud import insert_prediction
@@ -14,6 +14,7 @@ router = APIRouter()
 
 @router.post("/upload-csv-for-an-asset")
 async def upload_csv_for_prediction(asset_id: int, file: UploadFile = File(...)):
+    print(asset_id,"~~~~~~~~~~asset_id")
 
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
@@ -32,7 +33,7 @@ async def upload_csv_for_prediction(asset_id: int, file: UploadFile = File(...))
 
     # 4️⃣ Feature engineering (same as training)
     df_features = clean_data_for_prediction(df)
-    save_cleaned_prediction_csv(df_features, asset_type)
+    save_cleaned_prediction_csv(df_features, asset_type,asset_id)
     # 5️⃣ Persist time-series for charts
     insert_asset_detail(asset_id, df_features)
 
@@ -41,7 +42,7 @@ async def upload_csv_for_prediction(asset_id: int, file: UploadFile = File(...))
 
     # 7️⃣ Persist prediction + update asset
     insert_prediction(asset_id, risk)
-    update_asset_risk(asset_id, risk)
+    update_asset_risk(asset_id, shutdown_risk=risk["shutdown_risk"])
 
     return {
         "status": "prediction completed",

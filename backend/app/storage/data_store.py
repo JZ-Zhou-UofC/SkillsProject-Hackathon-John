@@ -19,11 +19,12 @@ def save_cleaned_csv(
 def save_cleaned_prediction_csv(
     df: pd.DataFrame,
     asset_type: str,
+    asset_id:str,
 
 ):
     """
     Save cleaned and feature-engineered CSV associated with a training job.
     """
-    path = DATA_DIR / f"cleaned_{asset_type}_{job_id}.csv"
+    path = DATA_DIR / f"cleaned_{asset_type}_{asset_id}.csv"
     df.to_csv(path, index=False)
     return path
