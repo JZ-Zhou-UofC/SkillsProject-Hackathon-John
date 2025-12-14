@@ -1,65 +1,184 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useRef } from "react"
+
+// Map backend status → progress %
+const STATUS_PROGRESS: Record<string, number> = {
+  queued: 0,
+  validating: 10,
+  feature_engineering: 30,
+  training: 60,
+  saving_model: 85,
+  registering_model: 95,
+  completed: 100,
+  failed: 100,
+}
 
 export default function Home() {
+  const [assetType, setAssetType] = useState("gas_turbine")
+  const [file, setFile] = useState<File | null>(null)
+  const [jobId, setJobId] = useState<number | null>(null)
+
+  const [status, setStatus] = useState<string>("idle")
+  const [progress, setProgress] = useState<number>(0)
+  const [logs, setLogs] = useState<string[]>([])
+
+  const wsRef = useRef<WebSocket | null>(null)
+
+  const log = (msg: string) =>
+    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`])
+
+  // -------------------------
+  // Upload CSV
+  // -------------------------
+  const uploadCsv = async () => {
+    if (!file) {
+      alert("Please select a CSV file")
+      return
+    }
+
+    log("Uploading CSV...")
+    setStatus("queued")
+    setProgress(0)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/upload-csv-for-model-creation-or-update?asset_type=${assetType}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    )
+
+    if (!res.ok) {
+      log("Upload failed")
+      setStatus("failed")
+      setProgress(100)
+      return
+    }
+
+    const data = await res.json()
+    setJobId(data.job_id)
+    log(`Training started (job_id=${data.job_id})`)
+
+    connectWebSocket(data.job_id)
+  }
+
+  // -------------------------
+  // WebSocket connection
+  // -------------------------
+  const connectWebSocket = (jobId: number) => {
+    const wsUrl = `ws://localhost:8000/ws/training/${jobId}`
+
+
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+
+    ws.onopen = () => {}
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+
+      const newStatus = data.status
+      const newProgress = STATUS_PROGRESS[newStatus] ?? progress
+
+      setStatus(newStatus)
+      setProgress(newProgress)
+
+      log(`${newStatus}: ${data.message}`)
+    }
+
+    ws.onerror = () => log("WebSocket error")
+    ws.onclose = () =>{}
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main
+      style={{
+        padding: 24,
+        maxWidth: 800,
+        margin: "0 auto",
+        fontFamily: "monospace",
+      }}
+    >
+      <h1>Training API Test</h1>
+
+      {/* ------------------------- */}
+      {/* Controls */}
+      {/* ------------------------- */}
+      <div style={{ marginBottom: 12 }}>
+        <label>Asset Type: </label>
+        <input
+          value={assetType}
+          onChange={(e) => setAssetType(e.target.value)}
+          style={{ marginLeft: 8 }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      <button onClick={uploadCsv}>Upload & Train</button>
+
+      {/* ------------------------- */}
+      {/* Status Bar */}
+      {/* ------------------------- */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ marginBottom: 6 }}>
+          <strong>Status:</strong> {status}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div
+          style={{
+            width: "100%",
+            height: 20,
+            background: "#333",
+            borderRadius: 4,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: `${progress}%`,
+              height: "100%",
+              background:
+                progress === 100
+                  ? status === "failed"
+                    ? "#f00"
+                    : "#0f0"
+                  : "#0af",
+              transition: "width 0.3s ease",
+            }}
+          />
         </div>
-      </main>
-    </div>
-  );
+
+        <div style={{ marginTop: 4 }}>{progress}%</div>
+      </div>
+
+      {/* ------------------------- */}
+      {/* Logs */}
+      {/* ------------------------- */}
+      <hr style={{ margin: "24px 0" }} />
+
+      <h3>Logs</h3>
+      <pre
+        style={{
+          background: "#111",
+          color: "#0f0",
+          padding: 12,
+          maxHeight: 300,
+          overflowY: "auto",
+        }}
+      >
+        {logs.join("\n")}
+      </pre>
+    </main>
+  )
 }

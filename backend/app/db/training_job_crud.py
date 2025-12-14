@@ -23,7 +23,7 @@ def update_training_job(job_id: str, status: str, message: str):
         {
             "status": status,
             "progress_message": message,
-            "updated_at": datetime.utcnow(),
+  
         }
     ).eq("id", job_id).execute()
 
