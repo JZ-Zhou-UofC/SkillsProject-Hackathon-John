@@ -9,4 +9,5 @@ export type Asset = {
   manager_phone: string;
   risk_status: string;
   created_at: string;
+  status:string;
 };

@@ -20,7 +20,7 @@ router = APIRouter()
 
 @router.post("/upload-csv-for-model-creation-or-update")
 async def upload_csv_for_model_creation_or_update(
-    asset_type: str, file: UploadFile = File(...)
+ file: UploadFile = File(...)
 ):
     """
     Upload training CSV, validate, preprocess, and train/update a model.
@@ -37,7 +37,7 @@ async def upload_csv_for_model_creation_or_update(
         # -------------------------
         # 1️⃣ Create training job
         # -------------------------
-        job_id = create_training_job(asset_type)
+        job_id = create_training_job(file.filename)
 
         # -------------------------
         # 2️⃣ Save uploaded CSV temporarily
@@ -52,7 +52,7 @@ async def upload_csv_for_model_creation_or_update(
         # -------------------------
         await set_progress(job_id, "validating", "Validating CSV")
         df = validate_training_csv(tmp_path)
-
+        asset_type = df["asset_type"][0]
         await set_progress(job_id, "feature_engineering", "Building features")
         df_cleaned = clean_data_for_training_model(df)
 
