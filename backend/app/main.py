@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from dotenv import load_dotenv
+load_dotenv()
 from app.api.routes import train, websocket
+from app.db.db import db
 
 app = FastAPI(
     title="Turbine Maintenance Risk API",
@@ -24,12 +26,19 @@ app.add_middleware(
 # Health Check
 # -------------------------
 @app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
-# -------------------------
-# API Routes
-# -------------------------
+async def health_check():
+    try:
+        db.table("training_jobs").select("id").limit(1).execute()
+        return {
+            "status": "healthy",
+            "supabase": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "supabase": "error",
+            "error": str(e)
+        }
 
 app.include_router(train.router, tags=["Model Training"])
 

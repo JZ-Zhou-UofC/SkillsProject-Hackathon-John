@@ -6,3 +6,4 @@ scikit-learn
 joblib
 python-multipart
 supabase
+python-dotenv
