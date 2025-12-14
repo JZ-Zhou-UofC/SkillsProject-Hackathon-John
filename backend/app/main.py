@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import upload, train, predict, assets
+from app.api.routes import train, websocket
 
 app = FastAPI(
     title="Turbine Maintenance Risk API",
-    description="Predictive maintenance system for turbine units",
+
     version="0.1.0",
 )
 
@@ -30,7 +30,10 @@ def health_check():
 # -------------------------
 # API Routes
 # -------------------------
-app.include_router(upload.router, prefix="", tags=["Upload"])
-app.include_router(train.router, prefix="", tags=["Training"])
-app.include_router(predict.router, prefix="", tags=["Prediction"])
-app.include_router(assets.router, prefix="", tags=["Assets"])
+
+app.include_router(train.router, tags=["Model Training"])
+
+app.include_router(
+    websocket.router,
+    prefix="",
+)
