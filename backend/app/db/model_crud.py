@@ -25,13 +25,17 @@ def insert_model_record(
 def get_active_model(asset_type: str):
     result = (
         db.table("models")
-        .select("*")
+        .select("model_path")
         .eq("asset_type", asset_type)
         .eq("is_active", True)
-        .single()
+        .limit(1)
         .execute()
     )
-    return result.data
+
+    if not result.data:
+        raise ValueError(f"No active model found for asset_type={asset_type}")
+
+    return result.data[0]
 
 
 def get_all_active_models():

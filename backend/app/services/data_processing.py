@@ -19,18 +19,15 @@ SENSOR_COLS = [
 # -------------------------
 # Feature Engineering
 # -------------------------
-def clean_data_for_training_model(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Clean and transform raw time-series sensor data into model-ready features.
-    """
 
+def build_features(df: pd.DataFrame) -> pd.DataFrame:
     # Ensure time order
     df = df.sort_values("timestamp").reset_index(drop=True)
 
-    # Keep latest N rows (e.g., 500 hours)
+    # Keep latest N rows
     df = df.tail(MAX_ROWS).reset_index(drop=True)
 
-    # Forward fill missing values (time-series safe)
+    # Forward fill missing values
     df = df.ffill()
 
     # -------------------------
@@ -61,9 +58,21 @@ def clean_data_for_training_model(df: pd.DataFrame) -> pd.DataFrame:
         df["compressor_temperature"] / df["output_current"]
     )
 
-    # -------------------------
     # Drop rows with insufficient history
-    # -------------------------
     df = df.dropna().reset_index(drop=True)
 
     return df
+
+def clean_data_for_training_model(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepare data for model training.
+    Includes feature engineering and keeps label columns.
+    """
+    return build_features(df)
+
+def clean_data_for_prediction(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepare data for inference.
+    Must mirror training feature engineering exactly.
+    """
+    return build_features(df)
