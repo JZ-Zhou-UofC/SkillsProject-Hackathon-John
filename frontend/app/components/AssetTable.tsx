@@ -109,7 +109,7 @@ export default function AssetTable({
                   <button
                     onClick={() => onArchive(asset.id)}
                     className="
-        sm:opacity-0 sm:group-hover:opacity-100
+        sm:opacity-20 sm:group-hover:opacity-100
         transition-opacity duration-200
         text-red-500 hover:text-red-700
         text-xs md:text-sm font-medium

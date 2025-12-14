@@ -6,7 +6,7 @@ import AssetFilters from "./AssetFilters";
 import AssetTable from "./AssetTable";
 import CreateAssetModal from "./CreateAssetModal";
 import { Asset } from "./types";
-
+import { startModelTraining } from "@/app/lib/modelTraining";
 import { fetchAssets, archiveAsset } from "@/app/lib/assetApi";
 import { uploadAssetCsv, uploadModelCsv } from "@/app/lib/csvUpload";
 
@@ -59,56 +59,15 @@ export default function AssetDashboard() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setModelTrainingStatus("uploading");
+        await startModelTraining({
+            file,
+            onStatusChange: setModelTrainingStatus,
+            onError: (msg:any) => alert(msg),
+        });
 
-        try {
-            const { job_id } = await uploadModelCsv(file);
-
-            // 🔗 Open WebSocket
-            const ws = new WebSocket(
-                `${process.env.NEXT_PUBLIC_WS_BASE_URL}/ws/training/${job_id}`
-            );
-
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                console.log("WebSocket connected");
-            };
-
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-
-                console.log("WS update:", data);
-
-                if (data.status === "validating" || data.status === "training") {
-                    setModelTrainingStatus("training");
-                }
-
-                if (data.status === "completed") {
-                    setModelTrainingStatus("complete");
-                    ws.close();
-                }
-
-                if (data.status === "failed") {
-                    setModelTrainingStatus("idle");
-                    alert(data.message || "Training failed");
-                    ws.close();
-                }
-            };
-
-            ws.onerror = (err) => {
-                console.error("WebSocket error", err);
-                setModelTrainingStatus("idle");
-            };
-
-        } catch (err) {
-            console.error(err);
-            setModelTrainingStatus("idle");
-            alert("Error uploading model CSV.");
-        } finally {
-            e.target.value = "";
-        }
+        e.target.value = "";
     };
+
 
     useEffect(() => {
         loadAssets();
