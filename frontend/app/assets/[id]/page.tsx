@@ -1,5 +1,6 @@
 // app/assets/[id]/page.tsx
 import { notFound } from "next/navigation";
+import RiskTimelineChart from "@/app/components/RiskTimelineChart";
 
 type Asset = {
   id: number;
@@ -13,22 +14,67 @@ type Asset = {
   created_at: string;
 };
 
-async function getAsset(id: string): Promise<Asset | null> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${id}`,
-    { cache: "no-store" }
-  );
+type LatestRisk = {
+  shutdown_risk: number;
+  pump_risk: number;
+  bearing_risk: number;
+  compressor_risk: number;
+  exhaust_path_risk: number;
+  cooling_or_lubrication_risk: number;
+  created_at: string;
+};
 
+type RiskDetailRow = {
+  created_at: string;
+  shutdown_risk: number;
+  bearing_risk?: number;
+};
+
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+/* -------------------------
+   Data Fetchers
+------------------------- */
+
+async function getAsset(id: string): Promise<Asset | null> {
+  const res = await fetch(`${BASE}/assets/${id}`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();
 }
 
+async function getLatestRisk(id: string): Promise<LatestRisk | null> {
+  const res = await fetch(`${BASE}/assets/${id}/risk`, { cache: "no-store" });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function getRiskDetail(
+  id: string
+): Promise<{ rows: RiskDetailRow[] } | null> {
+  const res = await fetch(`${BASE}/assets/${id}/detail`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+/* -------------------------
+   Page
+------------------------- */
+
 export default async function AssetDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const asset = await getAsset(params.id);
+  // ✅ REQUIRED in new Next.js
+  const { id } = await params;
+
+  const [asset, latestRisk, detail] = await Promise.all([
+    getAsset(id),
+    getLatestRisk(id),
+    getRiskDetail(id),
+  ]);
 
   if (!asset) notFound();
 
@@ -49,6 +95,24 @@ export default async function AssetDetailPage({
         <Stat label="Created At" value={formatDate(asset.created_at)} />
       </section>
 
+      {/* Latest Risk Snapshot */}
+      {latestRisk && (
+        <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <Stat
+            label="Shutdown Risk"
+            value={`${Math.round(latestRisk.shutdown_risk * 100)}%`}
+          />
+          <Stat
+            label="Bearing Risk"
+            value={`${Math.round(latestRisk.bearing_risk * 100)}%`}
+          />
+          <Stat
+            label="Pump Risk"
+            value={`${Math.round(latestRisk.pump_risk * 100)}%`}
+          />
+        </section>
+      )}
+
       {/* Details */}
       <section className="bg-white rounded-lg shadow-sm border p-6 space-y-4">
         <Detail label="Asset Type" value={asset.asset_type} />
@@ -56,9 +120,17 @@ export default async function AssetDetailPage({
         <Detail label="Asset ID" value={String(asset.id)} />
       </section>
 
-      {/* Placeholder: Predictions */}
-      <section className="bg-white rounded-lg shadow-sm border p-6 text-gray-400 text-center">
-        Prediction results & risk timeline will appear here
+      {/* Risk Timeline */}
+      <section className="bg-white rounded-lg shadow-sm border p-6 space-y-4">
+        <h2 className="text-lg font-semibold">Risk Timeline (Last 500)</h2>
+
+        {detail?.rows?.length ? (
+          <RiskTimelineChart data={detail.rows} />
+        ) : (
+          <p className="text-sm text-gray-400 text-center">
+            No prediction history available
+          </p>
+        )}
       </section>
     </main>
   );

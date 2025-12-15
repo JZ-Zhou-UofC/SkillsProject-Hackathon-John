@@ -74,3 +74,16 @@ def update_asset_risk(asset_id: int, risk_level: str) -> None:
         .eq("id", asset_id)
         .execute()
     )
+def get_asset_by_id(asset_id: int) -> dict | None:
+    res = (
+        db.table("assets")
+        .select(
+            "id, asset_name, asset_type, city, address, "
+            "manager_name, manager_phone, risk_status, created_at"
+        )
+        .eq("id", asset_id)
+        .limit(1)
+        .execute()
+    )
+
+    return res.data[0] if res.data else None

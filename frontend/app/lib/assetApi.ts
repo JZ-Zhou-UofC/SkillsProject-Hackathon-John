@@ -18,3 +18,18 @@ export async function archiveAsset(id: number) {
     throw new Error("Failed to archive asset");
   }
 }
+export async function getAssetRisk(id: string) {
+  const res = await fetch(`${API_URL}/assets/${id}/risk`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getAssetDetail(id: string) {
+  const res = await fetch(`${API_URL}/assets/${id}/detail`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
