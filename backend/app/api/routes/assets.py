@@ -1,7 +1,7 @@
 # app/api/routes/assets.py
 from fastapi import APIRouter, Request, HTTPException
 from app.db.assets_crud import create_asset,get_assets,get_asset_by_id
-from app.db.prediction_crud import get_latest_risk,get_risk_detail
+from app.db.prediction_crud import get_latest_risk,get_risk_detail,get_asset_diagnostics
 
 router = APIRouter()
 
@@ -57,14 +57,14 @@ def get_asset_risk(asset_id: int):
         "shutdown_risk": risk["shutdown_risk"],
     }
 
-@router.get("/assets/{asset_id}/detail")
-def get_asset_risk_detail(asset_id: int):
-    rows = get_risk_detail(asset_id)
+# @router.get("/assets/{asset_id}/detail")
+# def get_asset_risk_detail(asset_id: int):
+#     rows = get_risk_detail(asset_id)
 
-    return {
-        "asset_id": asset_id,
-        "rows": rows
-    }
+#     return {
+#         "asset_id": asset_id,
+#         "rows": rows
+#     }
 
 
 @router.get("/assets/{asset_id}")
@@ -78,3 +78,12 @@ def get_asset(asset_id: int):
         )
 
     return asset
+
+@router.get("/assets/{asset_id}/detail")
+def get_asset_detail(asset_id: int):
+    rows = get_asset_diagnostics(asset_id)
+
+    return {
+        "asset_id": asset_id,
+        "rows": rows
+    }

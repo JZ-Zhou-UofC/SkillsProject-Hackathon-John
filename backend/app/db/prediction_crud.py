@@ -35,3 +35,17 @@ def get_risk_detail(asset_id: int, limit: int = 500) -> list[dict]:
 
     # Charts need ascending time
     return list(reversed(res.data or []))
+def get_asset_diagnostics(asset_id: int, limit: int = 500) -> list[dict]:
+    res = (
+        db.table("asset_detail")
+        .select(
+            "created_at, output_current, exhaust_chemical_percentage"
+        )
+        .eq("asset_id", asset_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    # chart expects ascending time
+    return list(reversed(res.data or []))
