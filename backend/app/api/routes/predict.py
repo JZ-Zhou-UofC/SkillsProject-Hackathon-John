@@ -7,7 +7,7 @@ from app.services.predict_risk import predict_risk
 from app.storage.data_store import save_cleaned_prediction_csv
 from app.db.assets_crud import get_asset, update_asset_risk, insert_asset_detail
 from app.db.prediction_crud import insert_prediction
-
+from app.utils.convert_risk_to_text import convert_to_text
 
 router = APIRouter()
 
@@ -42,7 +42,10 @@ async def upload_csv_for_prediction(asset_id: int, file: UploadFile = File(...))
 
     # 7️⃣ Persist prediction + update asset
     insert_prediction(asset_id, risk)
-    update_asset_risk(asset_id, shutdown_risk=risk["shutdown_risk"])
+    risk_level = convert_to_text(risk["shutdown_risk"])  # "HIGH" | "MEDIUM" | "LOW"
+
+    update_asset_risk(asset_id, risk_level)
+
 
     return {
         "status": "prediction completed",

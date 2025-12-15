@@ -63,14 +63,14 @@ def get_asset(asset_id: int):
     return result.data[0]
 
 
-def update_asset_risk(asset_id: int,shutdown_risk: float) -> None:
+def update_asset_risk(asset_id: int, risk_level: str) -> None:
     """
     Update the asset's overall risk status.
     Example risk values: HIGH, MEDIUM, LOW, N/A
     """
     (
         db.table("assets")
-        .update({"risk_status": shutdown_risk})
+        .update({"risk_status": risk_level})
         .eq("id", asset_id)
         .execute()
     )
